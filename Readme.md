@@ -69,14 +69,61 @@ role.
 - We can attach permission to the roles, we can have multiple roles for a particular user.
 - We are using Enums to define roles in thye applications. In security package we have 
 `ApplicationUserRole` 
+- We have defined enums `ApplicationUserRole` to define the user Roles, `ApplicationUserPermission` is having the enums
+of the permission each role is having as per resources and finally in class `ApplicationSecurityConfig` we are having 
+below code which assigns the roles to each user:
+protected UserDetailsService userDetailsService() {
+        
+        UserDetails rajatUser = User.builder()
+                .username("rajat")
+                .password(passwordEncoder.encode("password"))
+                .roles(STUDENT.name()) //ROLE_STUDENT (internally)
+                .build();
+        UserDetails rajatAdmin = User.builder()
+                .username("rajatadmin")
+                .password(passwordEncoder.encode("password"))
+                .roles(ADMIN.name())
+                .build();
+        return new InMemoryUserDetailsManager( //Using a Class that is used by Interface
+                rajatUser, rajatAdmin
+        );
+       }}
 
+###Role Based Authentication
 
-
-
-
-
-
-
-
+- Now we need each end point to be secured by these roles and hence we are going to apply rules which will 
+allow a user to access a particular endpoint.
+- We are going to use  `antmatchers` for that, in the `configure` method we are going to allow users to match a
+certail kind of URL.
     
+        protected void configure(HttpSecurity http) throws Exception {
+                http
+                        .authorizeRequests()
+                        /*
+                        ant matchers will be used to match the patterns and whitelist them -  i.e. for all users
+                         */
+                        .antMatchers("/", "/index", "/css/*", "/js/*").permitAll()
+                        /*
+                        Implementing role based security here
+                         */
+                        .antMatchers("/api/**").hasRole(STUDENT.name())
+                        .anyRequest()
+                        .authenticated()
+                        .and()
+                        .httpBasic();
+                }     
+- We will get 403 - Forbidden status on that
 
+###Permission Based Authorization
+It can be done in 2 ways:
+
+- Using antmatchers, We can simply tell ant matchers what HTTP methods, a permission is applied:
+
+                    /*
+                    Permission based security is implemented here
+                     */
+                    .antMatchers(HttpMethod.DELETE,"/management/api/**").hasAuthority(STUDENT_WRITE.name())
+                    .antMatchers(HttpMethod.POST,"/management/api/**").hasAuthority(STUDENT_WRITE.name())
+                    .antMatchers(HttpMethod.PUT,"/management/api/**").hasAuthority(STUDENT_WRITE.name())
+
+- We can also add Permissions nd         
